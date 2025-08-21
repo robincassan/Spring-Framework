@@ -1,9 +1,15 @@
 package fr.diginamic.hello.controleurs;
 
 import fr.diginamic.hello.beans.Ville;
+import fr.diginamic.hello.validators.VilleValidator;
+import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -15,9 +21,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RequestMapping("/villes")
 public class VilleControleur {
 
+
     // Liste partagée entre GET et POST
     private List<Ville> villes = new ArrayList<>();
     private AtomicInteger compteurId = new AtomicInteger(1); // pour générer les ids
+
+    @Autowired
+    private VilleValidator villeValidator;
 
     // Constructeur pour initialiser quelques villes
     public VilleControleur() {
@@ -44,7 +54,19 @@ public class VilleControleur {
 
     // POST - ajouter une nouvelle ville
     @PostMapping
-    public ResponseEntity<String> ajouterVille(@RequestBody Ville nouvelleVille) {
+    public ResponseEntity<String> ajouterVille(@Valid @RequestBody Ville nouvelleVille, BindingResult result) {
+        if (result.hasErrors()) {
+            // Concaténer les erreurs en une seule chaîne
+            String erreurs = result.getAllErrors()
+                    .stream()
+                    .map(err -> err.getDefaultMessage())
+                    .reduce((msg1, msg2) -> msg1 + "; " + msg2)
+                    .orElse("Erreur de validation");
+
+            return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(erreurs);
+        }
         // Vérifier si la ville existe déjà
         boolean existe = villes.stream()
                 .anyMatch(v -> v.getNom().equalsIgnoreCase(nouvelleVille.getNom()));
@@ -61,6 +83,21 @@ public class VilleControleur {
     // ----------------- PUT -----------------
     @PutMapping("/{id}")
     public ResponseEntity<String> modifierVille(@PathVariable int id, @RequestBody Ville villeModifiee) {
+        villeModifiee.setId(id); // forcer l'id de la requête
+
+        // Validation avec le Validator custom
+        BeanPropertyBindingResult errors = new BeanPropertyBindingResult(villeModifiee, "ville");
+        villeValidator.validate(villeModifiee, errors);
+
+        if (errors.hasErrors()) {
+            String erreurs = errors.getAllErrors()
+                    .stream()
+                    .map(err -> err.getDefaultMessage())
+                    .reduce((msg1, msg2) -> msg1 + "; " + msg2)
+                    .orElse("Erreur de validation");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(erreurs);
+        }
+
         Optional<Ville> villeOpt = villes.stream().filter(v -> v.getId() == id).findFirst();
         if (villeOpt.isPresent()) {
             Ville ville = villeOpt.get();
