@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"fr.diginamic.tp6"},{"l":"fr.diginamic.tp6.controller"},{"l":"fr.diginamic.tp6.dao"},{"l":"fr.diginamic.tp6.dto"},{"l":"fr.diginamic.tp6.model"},{"l":"fr.diginamic.tp6.repository"},{"l":"fr.diginamic.tp6.service"}];updateSearchResults();
