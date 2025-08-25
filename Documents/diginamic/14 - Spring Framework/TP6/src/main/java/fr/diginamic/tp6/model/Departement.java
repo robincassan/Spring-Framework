@@ -1,6 +1,5 @@
 package fr.diginamic.tp6.model;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
@@ -18,6 +17,7 @@ import java.util.List;
  * département.</p>
  */
 @Entity
+@Table(name = "departement")
 public class Departement {
     /** Identifiant unique du département (clé primaire) */
     @Id
@@ -27,7 +27,7 @@ public class Departement {
     @NotBlank(message = "Le code du département est obligatoire")
     private String code;
     /** Nom du département (exemple : "Paris") */
-    @NotBlank(message = "Le nom du département est obligatoire")
+    @Column(nullable = true)
     private String nom;
 
     /**

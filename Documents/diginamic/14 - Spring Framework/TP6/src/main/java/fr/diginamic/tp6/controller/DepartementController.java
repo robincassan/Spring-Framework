@@ -1,145 +1,97 @@
 package fr.diginamic.tp6.controller;
 
 import fr.diginamic.tp6.dto.DepartementDTO;
+import fr.diginamic.tp6.dto.VilleDTO;
 import fr.diginamic.tp6.model.Departement;
-import fr.diginamic.tp6.repository.DepartementRepository;
+import fr.diginamic.tp6.model.Ville;
+import fr.diginamic.tp6.service.DepartementService;
+import fr.diginamic.tp6.service.VilleService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-
-/**
- * Contrôleur REST pour la gestion des départements.
- * <p>
- * Cette classe expose des endpoints permettant de :
- * <ul>
- *     <li>Lister tous les départements</li>
- *     <li>Consulter un département par son identifiant</li>
- *     <li>Créer un nouveau département</li>
- *     <li>Mettre à jour un département existant</li>
- *     <li>Supprimer un département</li>
- *     <li>Récupérer les villes d’un département donné</li>
- * </ul>
- *
- * @author Robin
- * @version 1.0
- */
 @RestController
 @RequestMapping("/departements")
 public class DepartementController {
 
-    private final DepartementRepository departementRepository;
+    private final DepartementService departementService;
+    private final VilleService villeService;
 
-    /**
-     * Constructeur injectant le repository des départements.
-     *
-     * @param departementRepository repository permettant d’accéder aux données des départements
-     */
-    public DepartementController(DepartementRepository departementRepository) {
-        this.departementRepository = departementRepository;
+    public DepartementController(DepartementService departementService, VilleService villeService) {
+        this.departementService = departementService;
+        this.villeService = villeService;
     }
 
-    /**
-     * Récupère la liste de tous les départements.
-     *
-     * @return liste de {@link DepartementDTO}
-     */
+    // Récupérer tous les départements (toujours paginé)
     @GetMapping
-    public List<DepartementDTO> getAll() {
-        return departementRepository.findAll()
-                .stream()
-                .map(DepartementDTO::new)
-                .toList();
+    public Page<DepartementDTO> getAll(@RequestParam(defaultValue = "0") int page,
+                                       @RequestParam(defaultValue = "10") int size) {
+        return departementService.extractDepartements(page, size)
+                .map(DepartementDTO::new);
     }
 
-    /**
-     * Récupère un département par son identifiant.
-     *
-     * @param id identifiant du département recherché
-     * @return {@link ResponseEntity} contenant le {@link DepartementDTO} si trouvé, sinon 404 Not Found
-     */
+    // Récupérer un département par ID
     @GetMapping("/{id}")
     public ResponseEntity<DepartementDTO> getById(@PathVariable Long id) {
-        return departementRepository.findById(id)
-                .map(DepartementDTO::new)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Departement dept = departementService.extractDepartement(id);
+        if (dept == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(new DepartementDTO(dept));
     }
 
-    /**
-     * Crée un nouveau département.
-     * <p>
-     * Si des villes sont fournies, elles sont automatiquement rattachées au département.
-     *
-     * @param departement département à créer
-     * @return {@link ResponseEntity} contenant le {@link DepartementDTO} créé
-     */
+    // Créer un département
     @PostMapping
     public ResponseEntity<DepartementDTO> create(@RequestBody Departement departement) {
-        // évite NullPointerException si aucune ville n’est envoyée
-        if (departement.getVilles() != null) {
-            // rattache chaque ville à ce département
-            departement.getVilles().forEach(v -> v.setDepartement(departement));
-        }
-
-        Departement saved = departementRepository.save(departement);
+        Departement saved = departementService.insertDepartement(departement);
         return ResponseEntity.ok(new DepartementDTO(saved));
     }
 
-    /**
-     * Met à jour un département existant.
-     *
-     * @param id identifiant du département à mettre à jour
-     * @param departement objet contenant les nouvelles valeurs (nom et code)
-     * @return {@link ResponseEntity} contenant le {@link DepartementDTO} mis à jour,
-     * ou 404 Not Found si le département n’existe pas
-     */
+    // Mettre à jour un département
     @PutMapping("/{id}")
     public ResponseEntity<DepartementDTO> update(@PathVariable Long id, @RequestBody Departement departement) {
-        return departementRepository.findById(id).map(existing -> {
-            existing.setNom(departement.getNom());
-            existing.setCode(departement.getCode());
-            Departement updated = departementRepository.save(existing);
-            return ResponseEntity.ok(new DepartementDTO(updated));
-        }).orElse(ResponseEntity.notFound().build());
+        Departement updated = departementService.modifierDepartement(id, departement);
+        if (updated == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(new DepartementDTO(updated));
     }
 
-    /**
-     * Supprime un département par son identifiant.
-     *
-     * @param id identifiant du département à supprimer
-     * @return {@link ResponseEntity} avec statut 204 No Content si supprimé,
-     * ou 404 Not Found si inexistant
-     */
+    // Supprimer un département
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!departementRepository.existsById(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        departementRepository.deleteById(id);
+        Departement dept = departementService.extractDepartement(id);
+        if (dept == null) return ResponseEntity.notFound().build();
+        departementService.supprimerDepartement(id);
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Récupère la liste des noms de villes d’un département.
-     *
-     * @param id identifiant du département
-     * @return {@link ResponseEntity} contenant la liste des noms de villes,
-     * ou 404 Not Found si le département n’existe pas
-     */
+    // Lister les villes d’un département
     @GetMapping("/{id}/villes")
-    public ResponseEntity<List<String>> getVillesByDepartement(@PathVariable Long id) {
-        return departementRepository.findById(id)
-                .map(departement -> {
-                    // On récupère juste les noms des villes pour éviter la boucle infinie
-                    List<String> nomsVilles = departement.getVilles()
-                            .stream()
-                            .map(v -> v.getNom())
-                            .toList();
-                    return ResponseEntity.ok(nomsVilles);
-                })
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<List<VilleDTO>> getVilles(@PathVariable Long id) {
+        List<Ville> villes = departementService.villesParDepartement(id);
+        if (villes.isEmpty()) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(villes.stream().map(VilleDTO::new).toList());
     }
 
+    // Lister les n plus grandes villes d’un département
+    @GetMapping("/{id}/villes/top")
+    public ResponseEntity<List<VilleDTO>> getTopVilles(
+            @PathVariable Long id,
+            @RequestParam int n) {
+
+        List<Ville> topVilles = departementService.nPlusGrandesVilles(id, n);
+        if (topVilles.isEmpty()) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(topVilles.stream().map(VilleDTO::new).toList());
+    }
+
+    // Lister les villes par population min/max
+    @GetMapping("/{id}/villes/filter")
+    public ResponseEntity<List<VilleDTO>> getVillesByPopulation(
+            @PathVariable Long id,
+            @RequestParam int min,
+            @RequestParam int max) {
+
+        List<Ville> villes = departementService.villesParPopulation(id, min, max);
+        if (villes.isEmpty()) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(villes.stream().map(VilleDTO::new).toList());
+    }
 }

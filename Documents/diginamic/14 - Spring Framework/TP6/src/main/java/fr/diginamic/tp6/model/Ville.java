@@ -1,6 +1,5 @@
 package fr.diginamic.tp6.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 
@@ -15,6 +14,7 @@ import jakarta.validation.constraints.NotBlank;
  * même département.</p>
  */
 @Entity
+@Table(name = "ville")
 public class Ville {
 
     /** Identifiant unique de la ville (clé primaire, auto-incrémentée) */
