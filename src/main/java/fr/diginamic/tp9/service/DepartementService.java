@@ -79,4 +79,13 @@ public class DepartementService implements IDepartementService {
                 .map(Departement::getVilles)
                 .orElse(List.of());
     }
+
+    private void validateDepartement(Departement departement) throws BusinessException {
+        if (departement.getNom() == null || departement.getNom().length() < 3) {
+            throw new BusinessException("Le nom du département doit comporter au moins 3 lettres");
+        }
+        if (departementRepository.existsByNom(departement.getNom())) {
+            throw new BusinessException("Le nom du département doit être unique");
+        }
+    }
 }

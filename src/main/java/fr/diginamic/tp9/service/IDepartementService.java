@@ -18,15 +18,6 @@ public interface IDepartementService {
 
     void supprimerDepartement(Long id);
 
-    default void validateDepartement(Departement departement) throws BusinessException {
-        if (departement.getNom() == null || departement.getNom().length() < 3) {
-            throw new BusinessException("Le nom du département doit comporter au moins 3 lettres");
-        }
-        if (departementRepository.existsByNom(departement.getNom())) {
-            throw new BusinessException("Le nom du département doit être unique");
-        }
-    }
-
     List<Ville> nPlusGrandesVilles(Long idDept, int n);
 
     List<Ville> villesParPopulation(Long idDept, int min, int max);
