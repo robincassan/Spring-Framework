@@ -5,6 +5,8 @@ import fr.diginamic.tp9.dto.VilleDTO;
 import fr.diginamic.tp9.model.Departement;
 import fr.diginamic.tp9.model.Ville;
 import fr.diginamic.tp9.service.DepartementService;
+import fr.diginamic.tp9.service.IDepartementService;
+import fr.diginamic.tp9.service.IVilleService;
 import fr.diginamic.tp9.service.VilleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,81 +25,47 @@ import java.util.List;
 @RequestMapping("/departements")
 public class DepartementController implements IDepartementController {
 
-    private final DepartementService departementService;
-    private final VilleService villeService;
+    private final IDepartementService departementService;
+    private final IVilleService villeService;
 
-    public DepartementController(DepartementService departementService, VilleService villeService) {
+    public DepartementController(IDepartementService departementService, IVilleService villeService) {
         this.departementService = departementService;
         this.villeService = villeService;
     }
 
-    @GetMapping
-    @Operation(summary = "Retourne la liste paginée de tous les départements")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Liste des départements",
-                    content = @Content(mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = DepartementDTO.class))))
-    })
     @Override
+    @GetMapping
     public Page<DepartementDTO> getAll(@RequestParam(defaultValue = "0") int page,
                                        @RequestParam(defaultValue = "10") int size) {
         return departementService.extractDepartements(page, size)
                 .map(DepartementDTO::new);
     }
 
-    @GetMapping("/{id}")
-    @Operation(summary = "Retourne un département par son ID")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Département trouvé",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = DepartementDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Département non trouvé", content = @Content())
-    })
     @Override
-    public ResponseEntity<DepartementDTO> getById(
-            @Parameter(description = "ID du département", required = true, example = "34")
-            @PathVariable Long id) {
+    @GetMapping("/{id}")
+    public ResponseEntity<DepartementDTO> getById(@PathVariable Long id) {
         Departement dept = departementService.extractDepartement(id);
         if (dept == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(new DepartementDTO(dept));
     }
 
-    @PostMapping
-    @Operation(summary = "Crée un nouveau département")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Département créé",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = DepartementDTO.class))),
-            @ApiResponse(responseCode = "400", description = "Erreur de validation", content = @Content())
-    })
     @Override
+    @PostMapping
     public ResponseEntity<DepartementDTO> create(@RequestBody Departement departement) {
         Departement saved = departementService.insertDepartement(departement);
         return ResponseEntity.ok(new DepartementDTO(saved));
     }
 
-    @PutMapping("/{id}")
-    @Operation(summary = "Met à jour un département existant")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Département mis à jour",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = DepartementDTO.class))),
-            @ApiResponse(responseCode = "404", description = "Département introuvable", content = @Content())
-    })
     @Override
+    @PutMapping("/{id}")
     public ResponseEntity<DepartementDTO> update(@PathVariable Long id, @RequestBody Departement departement) {
         Departement updated = departementService.modifierDepartement(id, departement);
         if (updated == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(new DepartementDTO(updated));
     }
 
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Supprime un département")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "204", description = "Département supprimé"),
-            @ApiResponse(responseCode = "404", description = "Département introuvable", content = @Content())
-    })
     @Override
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         Departement dept = departementService.extractDepartement(id);
         if (dept == null) return ResponseEntity.notFound().build();
@@ -105,56 +73,28 @@ public class DepartementController implements IDepartementController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/villes")
-    @Operation(summary = "Retourne toutes les villes d'un département")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Liste des villes",
-                    content = @Content(mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = VilleDTO.class)))),
-            @ApiResponse(responseCode = "404", description = "Aucune ville trouvée", content = @Content())
-    })
     @Override
+    @GetMapping("/{id}/villes")
     public ResponseEntity<List<VilleDTO>> getVilles(@PathVariable Long id) {
         List<Ville> villes = departementService.villesParDepartement(id);
         if (villes.isEmpty()) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(villes.stream().map(VilleDTO::new).toList());
     }
 
-    @GetMapping("/{id}/villes/top")
-    @Operation(summary = "Retourne les N plus grandes villes d'un département")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Liste des N plus grandes villes",
-                    content = @Content(mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = VilleDTO.class)))),
-            @ApiResponse(responseCode = "404", description = "Aucune ville trouvée", content = @Content())
-    })
     @Override
-    public ResponseEntity<List<VilleDTO>> getTopVilles(
-            @PathVariable Long id,
-            @Parameter(description = "Nombre de villes à retourner", required = true, example = "5")
-            @RequestParam int n) {
-
+    @GetMapping("/{id}/villes/top")
+    public ResponseEntity<List<VilleDTO>> getTopVilles(@PathVariable Long id, @RequestParam int n) {
         List<Ville> topVilles = departementService.nPlusGrandesVilles(id, n);
         if (topVilles.isEmpty()) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(topVilles.stream().map(VilleDTO::new).toList());
     }
 
-    @GetMapping("/{id}/villes/filter")
-    @Operation(summary = "Retourne les villes d'un département filtrées par population")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Liste des villes filtrées",
-                    content = @Content(mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = VilleDTO.class)))),
-            @ApiResponse(responseCode = "404", description = "Aucune ville trouvée", content = @Content())
-    })
     @Override
-    public ResponseEntity<List<VilleDTO>> getVillesByPopulation(
-            @PathVariable Long id,
-            @Parameter(description = "Population minimale", required = true, example = "1000") @RequestParam int min,
-            @Parameter(description = "Population maximale", required = true, example = "100000") @RequestParam int max) {
-
+    @GetMapping("/{id}/villes/filter")
+    public ResponseEntity<List<VilleDTO>> getVillesByPopulation(@PathVariable Long id, @RequestParam int min, @RequestParam int max) {
         List<Ville> villes = departementService.villesParPopulation(id, min, max);
         if (villes.isEmpty()) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(villes.stream().map(VilleDTO::new).toList());
     }
 }
+

@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class DepartementService {
+public class DepartementService implements IDepartementService {
 
     private final DepartementRepository departementRepository;
 
@@ -20,20 +20,24 @@ public class DepartementService {
     }
 
     /** 🔹 Récupérer tous les départements (toujours paginé) */
+    @Override
     public Page<Departement> extractDepartements(int page, int size) {
         return departementRepository.findAll(PageRequest.of(page, size));
     }
 
     /**  Récupérer un département par ID */
+    @Override
     public Departement extractDepartement(Long id) {
         return departementRepository.findById(id).orElse(null);
     }
 
+    @Override
     public Departement insertDepartement(Departement departement) throws BusinessException {
         validateDepartement(departement);
         return departementRepository.save(departement);
     }
 
+    @Override
     public Departement modifierDepartement(Long id, Departement departementModifie) throws BusinessException {
         Departement existing = departementRepository.findById(id).orElseThrow(() -> new BusinessException("Département non trouvé"));
         validateDepartement(departementModifie);
@@ -43,20 +47,13 @@ public class DepartementService {
     }
 
     /**  Supprimer un département */
+    @Override
     public void supprimerDepartement(Long id) {
         departementRepository.findById(id).ifPresent(departementRepository::delete);
     }
 
-    private void validateDepartement(Departement departement) throws BusinessException {
-        if (departement.getNom() == null || departement.getNom().length() < 3) {
-            throw new BusinessException("Le nom du département doit comporter au moins 3 lettres");
-        }
-        if (departementRepository.existsByNom(departement.getNom())) {
-            throw new BusinessException("Le nom du département doit être unique");
-        }
-    }
-
     /**  Lister les n plus grandes villes d’un département */
+    @Override
     public List<Ville> nPlusGrandesVilles(Long idDept, int n) {
         Departement d = departementRepository.findById(idDept).orElse(null);
         if (d == null) return List.of();
@@ -67,6 +64,7 @@ public class DepartementService {
     }
 
     /**  Lister les villes avec population min/max dans un département */
+    @Override
     public List<Ville> villesParPopulation(Long idDept, int min, int max) {
         Departement d = departementRepository.findById(idDept).orElse(null);
         if (d == null) return List.of();
@@ -75,6 +73,7 @@ public class DepartementService {
                 .toList();
     }
 
+    @Override
     public List<Ville> villesParDepartement(Long departementId) {
         return departementRepository.findById(departementId)
                 .map(Departement::getVilles)
