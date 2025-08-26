@@ -3,6 +3,8 @@ package fr.diginamic.tp9.repository;
 import fr.diginamic.tp9.model.Departement;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Optional;
+
 /**
  * Repository Spring Data JPA pour l'entité {@link Departement}.
  *
@@ -26,6 +28,9 @@ public interface DepartementRepository extends JpaRepository<Departement, Long> 
 
     // pour vérifier l’unicité du nom
     boolean existsByNom(String nom);
+
+    // Nouvelle méthode pour rechercher un département par son code
+    Optional<Departement> findByCode(String code);
 
 }
 
