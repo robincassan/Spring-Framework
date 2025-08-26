@@ -4,10 +4,13 @@ import fr.diginamic.tp9.dto.VilleDTO;
 import fr.diginamic.tp9.model.Ville;
 import fr.diginamic.tp9.service.IVilleService;
 import fr.diginamic.tp9.service.IDepartementService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.List;
 
 @RestController
@@ -108,4 +111,29 @@ public class VilleController implements IVilleController {
     public List<VilleDTO> getVillesByPopulationBetween(@RequestParam int min, @RequestParam int max) {
         return villeService.villesPopulationBetween(min, max).stream().map(VilleDTO::new).toList();
     }
+    // ================= Export CSV =================
+    @GetMapping("/export/csv")
+    public void exportVillesCsv(@RequestParam int populationMin, HttpServletResponse response) throws IOException {
+        // Configurer le type de fichier CSV
+        response.setContentType("text/csv");
+        response.setHeader("Content-Disposition", "attachment; filename=villes.csv");
+
+        // Récupérer les villes selon le service
+        List<Ville> villes = villeService.villesPopulationMin(populationMin);
+
+        PrintWriter writer = response.getWriter();
+        writer.println("Nom,Ville,Population,Code Département,Nom Département");
+
+        for (Ville ville : villes) {
+            writer.println(String.format("%s,%d,%s,%s",
+                    ville.getNom(),
+                    ville.getPopulation(),
+                    ville.getDepartement().getCode(),
+                    ville.getDepartement().getNom()));
+        }
+
+        writer.flush();
+        writer.close();
+    }
 }
+

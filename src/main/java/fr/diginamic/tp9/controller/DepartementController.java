@@ -1,24 +1,21 @@
 package fr.diginamic.tp9.controller;
 
+import com.itextpdf.text.Document;
+import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
 import fr.diginamic.tp9.dto.DepartementDTO;
 import fr.diginamic.tp9.dto.VilleDTO;
 import fr.diginamic.tp9.model.Departement;
 import fr.diginamic.tp9.model.Ville;
-import fr.diginamic.tp9.service.DepartementService;
 import fr.diginamic.tp9.service.IDepartementService;
 import fr.diginamic.tp9.service.IVilleService;
-import fr.diginamic.tp9.service.VilleService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -96,5 +93,48 @@ public class DepartementController implements IDepartementController {
         if (villes.isEmpty()) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(villes.stream().map(VilleDTO::new).toList());
     }
+
+    // ================= Export PDF =================
+    // imports : com.itextpdf.text.* et jakarta.servlet.http.HttpServletResponse sont ok
+
+    @GetMapping("/export/{id}/pdf")
+    public void exportDepartementPdf(@PathVariable Long id, HttpServletResponse response)
+            throws IOException, DocumentException {
+        Departement departement = departementService.extractDepartement(id);
+        if (departement == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Département introuvable");
+            return;
+        }
+
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=departement_" + departement.getCode() + ".pdf");
+
+        Document document = new Document();
+        try {
+            PdfWriter.getInstance(document, response.getOutputStream());
+            document.open();
+
+            document.add(new Paragraph("Département: " + departement.getNom()));
+            document.add(new Paragraph("Code: " + departement.getCode()));
+            document.add(new Paragraph("\nListe des villes:"));
+
+            List<Ville> villes = departementService.villesParDepartement(id);
+            if (villes == null || villes.isEmpty()) {
+                document.add(new Paragraph("Aucune ville disponible."));
+            } else {
+                // <-- utilisation d'une boucle for classique (permets de propager DocumentException)
+                for (Ville ville : villes) {
+                    document.add(new Paragraph(ville.getNom() + " - Population: " + ville.getPopulation()));
+                }
+            }
+        } finally {
+            // s'assure de fermer le document même en cas d'erreur
+            if (document != null) {
+                document.close();
+            }
+        }
+    }
 }
+
+
 
