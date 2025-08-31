@@ -71,31 +71,60 @@ public class VilleService {
         }
     }
 
-    /**  Rechercher les villes dont le nom commence par un préfixe */
+    // --- Étape 3 : Recherches avec gestion d’exception ---
+
+    /** Recherche de toutes les villes dont le nom commence par un préfixe */
     public List<Ville> villesParNomPrefix(String prefix) {
-        return villeRepository.findAll().stream()
-                .filter(v -> v.getNom().startsWith(prefix))
-                .toList();
+        List<Ville> result = villeRepository.findByNomStartingWith(prefix);
+        if (result.isEmpty()) {
+            throw new BusinessException("Aucune ville dont le nom commence par " + prefix + " n’a été trouvée");
+        }
+        return result;
     }
 
-    /**  Rechercher les villes dont la population est supérieure à min */
+    /** Recherche des villes dont la population est supérieure à min */
     public List<Ville> villesPopulationMin(int min) {
-        return villeRepository.findAll().stream()
-                .filter(v -> v.getPopulation() > min)
-                .sorted((v1, v2) -> Integer.compare(v2.getPopulation(), v1.getPopulation()))
-                .toList();
+        List<Ville> result = villeRepository.findByPopulationGreaterThanOrderByPopulationDesc(min);
+        if (result.isEmpty()) {
+            throw new BusinessException("Aucune ville n’a une population supérieure à " + min);
+        }
+        return result;
     }
 
-    /**  Rechercher les villes dont la population est entre min et max */
+    /** Recherche des villes dont la population est entre min et max */
     public List<Ville> villesPopulationBetween(int min, int max) {
-        return villeRepository.findAll().stream()
-                .filter(v -> v.getPopulation() > min && v.getPopulation() < max)
-                .sorted((v1, v2) -> Integer.compare(v2.getPopulation(), v1.getPopulation()))
-                .toList();
+        List<Ville> result = villeRepository.findByPopulationBetweenOrderByPopulationDesc(min, max);
+        if (result.isEmpty()) {
+            throw new BusinessException("Aucune ville n’a une population comprise entre " + min + " et " + max);
+        }
+        return result;
     }
 
-    /**  Rechercher les n villes les plus peuplées d’un département */
-    public List<Ville> topNVillesDepartement(Long departementId, int n) {
-        return villeRepository.findByDepartementIdOrderByPopulationDesc(departementId, PageRequest.of(0, n));
+    /** Recherche des villes d’un département dont la population > min */
+    public List<Ville> villesDepartementPopulationMin(Long departementId, int min, String codeDept) {
+        List<Ville> result = villeRepository.findByDepartementIdAndPopulationGreaterThanOrderByPopulationDesc(departementId, min);
+        if (result.isEmpty()) {
+            throw new BusinessException("Aucune ville n’a une population supérieure à " + min + " dans le département " + codeDept);
+        }
+        return result;
     }
+
+    /** Recherche des villes d’un département dont la population est entre min et max */
+    public List<Ville> villesDepartementPopulationBetween(Long departementId, int min, int max, String codeDept) {
+        List<Ville> result = villeRepository.findByDepartementIdAndPopulationBetweenOrderByPopulationDesc(departementId, min, max);
+        if (result.isEmpty()) {
+            throw new BusinessException("Aucune ville n’a une population comprise entre " + min + " et " + max + " dans le département " + codeDept);
+        }
+        return result;
+    }
+
+    /** Recherche des n villes les plus peuplées d’un département */
+    public List<Ville> topNVillesDepartement(Long departementId, int n, String codeDept) {
+        List<Ville> result = villeRepository.findByDepartementIdOrderByPopulationDesc(departementId, PageRequest.of(0, n));
+        if (result.isEmpty()) {
+            throw new BusinessException("Aucune ville trouvée dans le département " + codeDept);
+        }
+        return result;
+    }
+
 }

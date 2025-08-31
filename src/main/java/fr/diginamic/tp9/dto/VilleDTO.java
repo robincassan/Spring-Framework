@@ -35,7 +35,9 @@ public class VilleDTO {
         this.nom = ville.getNom();
         this.population = ville.getPopulation();
         this.codePostal = ville.getCodePostal();
-        this.departement = ville.getDepartement().getNom();
+        this.departement = (ville.getDepartement() != null)
+                ? ville.getDepartement().getNom()
+                : "Département inconnu";
     }
 
     // Getters

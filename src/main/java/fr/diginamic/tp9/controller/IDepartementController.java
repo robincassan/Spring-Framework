@@ -98,7 +98,7 @@ public interface IDepartementController {
                             array = @ArraySchema(schema = @Schema(implementation = VilleDTO.class)))),
             @ApiResponse(responseCode = "404", description = "Aucune ville trouvée", content = @Content())
     })
-    ResponseEntity<List<VilleDTO>> getVillesByPopulation(
+    ResponseEntity<?> getVillesByPopulation(
             @PathVariable Long id,
             @Parameter(description = "Population minimale", required = true, example = "1000") @RequestParam int min,
             @Parameter(description = "Population maximale", required = true, example = "100000") @RequestParam int max);

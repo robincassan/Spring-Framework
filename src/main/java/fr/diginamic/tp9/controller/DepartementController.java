@@ -148,13 +148,19 @@ public class DepartementController implements IDepartementController {
             @ApiResponse(responseCode = "404", description = "Aucune ville trouvée", content = @Content())
     })
     @Override
-    public ResponseEntity<List<VilleDTO>> getVillesByPopulation(
+    public ResponseEntity<?> getVillesByPopulation(
             @PathVariable Long id,
             @Parameter(description = "Population minimale", required = true, example = "1000") @RequestParam int min,
             @Parameter(description = "Population maximale", required = true, example = "100000") @RequestParam int max) {
 
         List<Ville> villes = departementService.villesParPopulation(id, min, max);
-        if (villes.isEmpty()) return ResponseEntity.notFound().build();
+
+        if (villes.isEmpty()) {
+            String msg = "Aucune ville n’a une population comprise entre " + min + " et " + max +
+                    " dans le département " + id;
+            return ResponseEntity.status(404).body(msg);
+        }
+
         return ResponseEntity.ok(villes.stream().map(VilleDTO::new).toList());
     }
 }
